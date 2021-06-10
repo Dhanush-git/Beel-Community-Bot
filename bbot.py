@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 
+import my_token
+
 
 client = commands.Bot(command_prefix=".")
 
@@ -21,5 +23,5 @@ async def ping(ctx):
     await ctx.channel.send(f"Pong {round(client.latency*1000)} ms")
 
 
-
-client.run(YOUR TOKEN HERE)
+# replace with bot token
+client.run(my_token.bot_token)
