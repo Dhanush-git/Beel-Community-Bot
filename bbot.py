@@ -1,4 +1,3 @@
-from logging import error
 import os
 import discord
 from discord.ext import commands
@@ -41,14 +40,5 @@ async def ping(ctx):
 
     await ctx.channel.send(f"Pong {round(client.latency*1000)} ms")
 
-@client.event
-async def on_command_error(ctx, error):
-    raise error
 
-
-extensions = ["cogs.automod"]
-for e in extensions:
-    client.load_extension(e)
-
-    
 client.run(os.getenv('TOKEN'))
