@@ -1,7 +1,14 @@
+import os
 import discord
 from discord.ext import commands
 
 import my_token
+
+from dotenv import load_dotenv , find_dotenv
+
+load_dotenv(find_dotenv())
+
+print(os.getenv('TOKEN'))
 
 
 client = commands.Bot(command_prefix="bb",intents=discord.Intents.all())
@@ -34,4 +41,4 @@ async def ping(ctx):
     await ctx.channel.send(f"Pong {round(client.latency*1000)} ms")
 
 
-client.run(my_token.bot_token)
+client.run(os.getenv('TOKEN'))
