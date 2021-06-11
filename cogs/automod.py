@@ -1,20 +1,18 @@
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 import discord
-from discord import member
 from discord.ext import commands
 import json
 from discord import NotFound, Object
 from typing import Optional
 import datetime
+from discord.ext.commands.errors import MissingRequiredArgument
 from discord.utils import find
 from discord.ext.commands import BadArgument, MemberNotFound
 from discord.ext.commands import Greedy, Converter
 
 
 warning_color = 0xff0400
-role_ids = {}
-
 
 
 class BannedUser(Converter):
@@ -92,11 +90,11 @@ class Automod(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
                 description="You are missing `ban_member` permission for above action.", colour=warning_color)
-            await ctx.send(embed=embed, delete_after=10)
+            await ctx.send(embed=embed)
         elif isinstance(error, MemberNotFound):
             embed = discord.Embed(
                 description="Can't ban user who is not in server.", colour=warning_color)
-            await ctx.send(embed=embed, delete_after=10)
+            await ctx.send(embed=embed)
 
     async def unban_member(self, ctx, members, reason):
         for member in members:
@@ -128,15 +126,11 @@ class Automod(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
                 description="You are missing `ban_member` permission for above action.", colour=warning_color)
-            await ctx.send(embed=embed, delete_after=10)
+            await ctx.send(embed=embed)
         elif isinstance(error, MemberNotFound):
             embed = discord.Embed(
                 description="Mentioned user is not banned from the server.", colour=warning_color)
-            await ctx.send(embed=embed, delete_after=10)
-
-    async def member_role(self, member):
-        role_id = ",".join(str(r.id) for r in member.roles)
-        role_ids.append(role_id)
+            await ctx.send(embed=embed)
 
     async def mute_members(self, ctx, member, time, reason):
         # with open("./json/config.json", "r") as json_file:
@@ -149,25 +143,25 @@ class Automod(commands.Cog):
         #     log_channel = ctx.channel  # sourcery no-metrics
         # json_file = open("./json/mute.json", "r")
         # mute_members = json.load(json_file)
-        try:
-            # Gets the numbers from the time argument, start to -1
-            seconds = time[:-1]
-            duration = time[-1]  # Gets the timed maniulation, s, m, h, d
-            if duration == "s":
-                seconds = seconds * 1
-            elif duration == "m":
-                seconds = seconds * 60
-            elif duration == "h":
-                seconds = seconds * 60 * 60
-            elif duration == "d":
-                seconds = seconds * 86400
-            else:
-                await ctx.send("Invalid duration input")
-                return
-        except Exception as e:
-            print(e)
-            await ctx.send("Invalid time input")
-            return
+        # try:
+        #     # Gets the numbers from the time argument, start to -1
+        #     seconds = time[:-1]
+        #     duration = time[-1]  # Gets the timed maniulation, s, m, h, d
+        #     if duration == "s":
+        #         seconds = seconds * 1
+        #     elif duration == "m":
+        #         seconds = seconds * 60
+        #     elif duration == "h":
+        #         seconds = seconds * 60 * 60
+        #     elif duration == "d":
+        #         seconds = seconds * 86400
+        #     else:
+        #         await ctx.send("Invalid duration input")
+        #         return
+        # except Exception as e:
+        #     print(e)
+        #     await ctx.send("Invalid time input")
+        #     return
 
         unmutes = []
         admin_id = self.client.id if ctx.author.id == member.id else ctx.author.id
@@ -215,38 +209,13 @@ class Automod(commands.Cog):
 
     @commands.command(name="mute")
     @commands.has_permissions(manage_roles=True, manage_guild=True)
-    async def mute_command(self, ctx, member: discord.Member, time, *, reason: Optional[str] = "No reason provided."):
-        try:
-            # Gets the numbers from the time argument, start to -1
-            seconds = time[:-1]
-            seconds = int(seconds)
-            duration = time[-1]  # Gets the timed maniulation, s, m, h, d
-            if duration == "s":
-                seconds *= 1
-            elif duration == "m":
-                seconds *= 60
-            elif duration == "h":
-                seconds = seconds * 60 * 60
-            elif duration == "d":
-                seconds *= 86400
-            else:
-                await ctx.send("Invalid duration input")
-                return
-        except Exception as e:
-            print(e)
-            await ctx.send("Invalid time input")
-            return
-        if not member:
-            await ctx.send("One or more required arguments are missing.")
+    async def mute_command(self, ctx, member: discord.Member, time: Optional[int], *, reason: Optional[str] = "No reason provided."):
+        unmutes = await self.mute_members(ctx, member, time, reason)
+        await ctx.send("Action complete.")
 
-        else:
-
-            unmutes = await self.mute_members(ctx, member, time, reason)
-            await ctx.send("Action complete.")
-
-            if len(unmutes):
-                await asyncio.sleep(seconds)
-                await self.unmute_members(ctx.guild, member)
+        if len(unmutes):
+            await asyncio.sleep(time)
+            await self.unmute_members(ctx, member)
 
     async def unmute_members(self, ctx, member, *, reason="Mute time expired."):
         # with open("./json/config.json", "r") as json_file:
@@ -266,11 +235,6 @@ class Automod(commands.Cog):
             # roles = [ctx.guild.get_role(int(id_))
             #          for id_ in role_ids.split(",") if len(id_)]
             await member.remove_roles(mute_role)
-
-            # del mute_member[str(ctx.guild.id)][str(member.id)]
-
-            
-
             embed = discord.Embed(title="Member unmuted",
                                   colour=warning_color,
                                   timestamp=datetime.datetime.utcnow())
@@ -283,20 +247,35 @@ class Automod(commands.Cog):
             for name, value, inline in fields:
                 embed.add_field(name=name, value=value, inline=inline)
             await ctx.send(embed=embed)
-        else:
-            await ctx.send('Member is not muted.')
+            # del mute_member[str(ctx.guild.id)][str(member.id)]
+
         # with open("./json/mute.json", "w") as f:
         #     json.dump(mute_member, f, indent=4)
 
     @commands.command(name="unmute")
     @commands.has_permissions(manage_roles=True, manage_guild=True)
     async def unmute_command(self, ctx, members: discord.Member, *, reason: Optional[str] = "No reason provided."):
-        if not members:
-            await ctx.send("One or more required arguments is missing.")
+        await self.unmute_members(ctx, members, reason=reason)
 
-        else:
-            await self.unmute_members(ctx, members, reason=reason)
-
+    @mute_command.error
+    async def _error(self, ctx, member):
+        if isinstance(member, MissingRequiredArgument):
+            await ctx.send("Oh no! You forget to mention user.")
+        
+        elif isinstance(member, commands.MissingPermissions):
+            embed = discord.Embed(
+                description="You are missing `manage_guild` permission for above action.", colour=warning_color)
+            await ctx.send(embed=embed)
+    
+    @unmute_command.error
+    async def _error(self, ctx, member):
+        if isinstance(member, MissingRequiredArgument):
+            await ctx.send("Oh no! You forget to mention user.")
+        
+        elif isinstance(member, commands.MissingPermissions):
+            embed = discord.Embed(
+                description="You are missing `manage_guild` permission for above action.", colour=warning_color)
+            await ctx.send(embed=embed)
 
 def setup(client):
     client.add_cog(Automod(client))
