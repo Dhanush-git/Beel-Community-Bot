@@ -1,3 +1,19 @@
 # Beel-Community-Bot
-This is a bot developed for our Discord Server by the members of the server
 
+![BEEL](https://cdn.discordapp.com/avatars/727792851643007009/773473c7ec8b287eef104b84e5f6f3fe.png?size=256)
+
+This is a bot developed for [Beel-community-server](https://discord.gg/T6fw2QZ8qn) by the members of the server
+
+## Table of contents 
+- [Builtwith](#Built-with) 
+- [How to contribute](#How-to-contribute?)
+
+### Built with
+
+- [Discord.py](https://discordpy.readthedocs.io/en/latest/api.html)
+
+## How to contribute?
+
+- Create a Pull Request
+- Add your code
+- Mearge
