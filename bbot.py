@@ -1,7 +1,7 @@
 import os
 import discord
 from discord.ext import commands
-
+from discord import Spotify
 
 from dotenv import load_dotenv , find_dotenv
 
@@ -37,6 +37,26 @@ async def hello(ctx):
 async def ping(ctx):
 
     await ctx.channel.send(f"Pong {round(client.latency*1000)} ms")
+
+@client.command()
+async def spotify(ctx, user: discord.Member = None):
+    if user == None:
+        user = ctx.author
+        pass
+    if user.activities:
+        for activity in user.activities:
+            if isinstance(activity, Spotify):
+                embed = discord.Embed(
+                    title = f"{user.name}'s Spotify",
+                    description = "Listening to {}".format(activity.title),
+                    color = activity.colour)
+                embed.set_thumbnail(url=activity.album_cover_url)
+                embed.add_field(name="Artist", value=activity.artist)
+                embed.add_field(name="Album", value=activity.album)
+                embed.set_footer(text="Song started at {}".format(activity.created_at.strftime("%H:%M")))
+                await ctx.send(embed=embed)
+    else:
+        await ctx.send("user is not listening to any song ")
 
 
 client.run(os.getenv('TOKEN'))
