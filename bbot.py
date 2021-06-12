@@ -2,6 +2,7 @@ import os
 import discord
 import requests
 import random
+import discord.ext
 from discord.ext import commands
 from discord import Spotify
 
@@ -104,5 +105,33 @@ async def createavatar(ctx, a=None):
         embed.set_image(url=img)
         embed.set_footer(text="created by https://robohash.org/")
         await ctx.send(embed=embed)
+
+
+
+#to send avatar of the user
+@client.command()
+async def av(ctx, user: discord.User = None):
+
+    emb = discord.Embed(title="Avatar")
+
+    if user == None:
+        emb.set_image(url=ctx.author.avatar_url)
+
+    else:
+        emb.set_image(url=user.avatar_url)
+
+    emb.set_author(name=ctx.author , icon_url=ctx.author.avatar_url)
+    await ctx.send(embed=emb)
+
+@av.error
+async def av_error(ctx, error):
+    if isinstance(error , commands.UserNotFound):
+        await ctx.send("Hmm 🤔, I had a hard time finding the user, you sure that user exits❓ it got a bit chilly right now 👻")
+
+    else:
+        await ctx.send("Hmm somethings wrong, plz inform the developers")
+
+
+
 
 client.run(os.getenv('TOKEN'))
