@@ -1,6 +1,6 @@
 # Beel-Community-Bot
 
-![BEEL](https://github.com/Dhanush-git/Beel-Community-Bot/blob/main/img/banner.jpg)
+![BEEL](https://github.com/Dhanush-git/Beel-Community-Bot/blob/main/img/banner.png)
 
 This is a bot developed for [Beel-community-server](https://discord.gg/T6fw2QZ8qn) by the members of the server. By the community for the community 😊
 
