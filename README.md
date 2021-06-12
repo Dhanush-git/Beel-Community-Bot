@@ -1,6 +1,6 @@
 # Beel-Community-Bot
 
-![BEEL](https://cdn.discordapp.com/avatars/727792851643007009/773473c7ec8b287eef104b84e5f6f3fe.png?size=256)
+![BEEL](https://github.com/Dhanush-git/Beel-Community-Bot/blob/main/img/banner.jpg)
 
 This is a bot developed for [Beel-community-server](https://discord.gg/T6fw2QZ8qn) by the members of the server. By the community for the community 😊
 
