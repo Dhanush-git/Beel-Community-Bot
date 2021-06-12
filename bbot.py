@@ -1,6 +1,7 @@
 import os
 import discord
 import requests
+import random
 from discord.ext import commands
 from discord import Spotify
 
@@ -74,5 +75,34 @@ async def joke(ctx):
         color=0xFF5733)
     await ctx.send(embed=embed)
 
+
+@client.command()
+async def insult(ctx, user: discord.Member = None):
+    if user == None:
+        await ctx.send("No u cant insult yourself,Tag someone")
+    else:
+        req = requests.get(
+            "https://evilinsult.com/generate_insult.php?lang=en&type=json")
+        insult = req.json()
+        embed = discord.Embed(title="{}".format(user.display_name),
+                              description="{}".format(insult['insult']),
+                              color=0xFF5733)
+        await ctx.send(embed=embed)
+
+
+@client.command()
+async def createavatar(ctx, a=None):
+    if a == None:
+        await ctx.send("please enter a random text to generate your avatar")
+    else:
+        req = requests.get(
+            f'https://robohash.org/{a}.png?set=set{random.randint(1,3)}')
+        img = req.url
+        embed = discord.Embed(title="your avatar",
+                              description=f"Here is your random avatar genrated by your text {a}",
+                              color=0xFF5733)
+        embed.set_image(url=img)
+        embed.set_footer(text="created by https://robohash.org/")
+        await ctx.send(embed=embed)
 
 client.run(os.getenv('TOKEN'))
