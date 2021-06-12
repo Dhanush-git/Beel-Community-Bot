@@ -16,4 +16,4 @@ This is a bot developed for [Beel-community-server](https://discord.gg/T6fw2QZ8q
 
 - Create a Pull Request
 - Add your code
-- Mearge
+- Merge
