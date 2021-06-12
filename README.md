@@ -4,8 +4,9 @@
 
 This is a bot developed for [Beel-community-server](https://discord.gg/T6fw2QZ8qn) by the members of the server
 
-## Table of contents 
-- [Builtwith](#Built-with) 
+## Table of contents
+
+- [Builtwith](#Built-with)
 - [How to contribute](#How-to-contribute?)
 
 ### Built with
@@ -16,4 +17,4 @@ This is a bot developed for [Beel-community-server](https://discord.gg/T6fw2QZ8q
 
 - Create a Pull Request
 - Add your code
-- Mearge
+- Merge
