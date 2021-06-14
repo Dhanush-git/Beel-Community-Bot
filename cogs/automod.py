@@ -48,7 +48,7 @@ class Automod(commands.Cog):
         #     log_channel = self.client.get_channel(id=logchanel_id)
         # except KeyError:
         #     log_channel = ctx.channel
-        # await member.send(f"You got banned from server **{ctx.guild.name}** by **{ctx.author.name}** for reason: `{reason}`")
+        await member.send(f"You got Kicked from server **{ctx.guild.name}** by **{ctx.author.name}** for reason: `{reason}`")
         await member.kick(reason=reason)
         await ctx.send(f" Member ID : ||{member.id}||")
         ban_embed = discord.Embed(title="Member Kicked!", colour=warning_color)
@@ -57,6 +57,21 @@ class Automod(commands.Cog):
         ban_embed.add_field(name="Reason", value=reason)
         ban_embed.timestamp = datetime.datetime.utcnow()
         await ctx.send(embed=ban_embed)
+
+    @commands.command()
+    @commands.has_guild_permissions(kick_members=True)
+    async def _kick(self, ctx, member: discord.Member, *, reason: Optional[str] = "No reason provided"):
+        self.kick_member(ctx, member, reason)
+    @_kick.error
+    async def kick_error(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            embed = discord.Embed(
+                description="You are missing `ban_member` permission for above action.", colour=warning_color)
+            await ctx.send(embed=embed)
+        elif isinstance(error, MemberNotFound):
+            embed = discord.Embed(
+                description="Can't ban user who is not in server.", colour=warning_color)
+            await ctx.send(embed=embed)
 
     async def ban_member(self, ctx, member, reason):
         if ctx.guild.me.top_role.position < member.top_role.position or member == ctx.guild.owner:
@@ -83,7 +98,7 @@ class Automod(commands.Cog):
     @commands.command()
     @commands.has_guild_permissions(ban_members=True)
     async def ban(self, ctx, member: discord.Member, *, reason: Optional[str] = "No reason provided"):
-        await self.ban_member(ctx, member, reason)
+        await self.ban_member(ctx, member, reason=reason)
 
     @ban.error
     async def ban_error(self, ctx, error):
@@ -167,7 +182,10 @@ class Automod(commands.Cog):
         admin_id = self.client.id if ctx.author.id == member.id else ctx.author.id
         mute_role = discord.utils.get(ctx.guild.roles, name="Muted")
         if mute_role not in ctx.guild.roles:
-            await ctx.guild.create_role(name="Muted", permissions=0)
+            await ctx.guild.create_role(name="Muted")
+            for channel in ctx.guild.channels:
+                await channel.set_permissions(mute_role, speak=False, send_messages=False, read_message_history=True, read_messages=False)
+
         if (mute_role not in member.roles):
             # end_time = datetime.utcnow() + timedelta(seconds=seconds) if time else None
             # if str(ctx.guild.id) not in mute_members:
@@ -188,7 +206,7 @@ class Automod(commands.Cog):
             admin = await ctx.guild.fetch_member(admin_id)
             fields = [("Member", member.mention, False),
                       ("Duration",
-                       f"{time}" if time else "Indefinite", True),
+                       f"{time} hour(s)" if time else "Indefinite", True),
                       ("Reason", reason, True),
                       ("Actioned by", admin.name, False)]
 
@@ -209,11 +227,34 @@ class Automod(commands.Cog):
 
     @commands.command(name="mute")
     @commands.has_permissions(manage_roles=True, manage_guild=True)
-    async def mute_command(self, ctx, member: discord.Member, time: Optional[int], *, reason: Optional[str] = "No reason provided."):
+    async def mute_command(self, ctx, member: discord.Member, time: Optional[int], *, reason: Optional[str] = "No reason provided.", ):
+        # if time:
+
+        #     try:
+        #     # Gets the numbers from the time argument, start to -1
+
+        #         seconds = time[:-1]
+        #         seconds = int(seconds)
+        #         duration = time[-1]  # Gets the timed maniulation, s, m, h, d
+        #         if duration == "s":
+        #             seconds *= 1
+        #         elif duration == "m":
+        #             seconds *= 60
+        #         elif duration == "h":
+        #             seconds = seconds * 60 * 60
+        #         elif duration == "d":
+        #             seconds *= 86400
+        #         else:
+        #             await ctx.send("Invalid duration input")
+        #             return
+        #     except Exception as e:
+        #         print(e)
+        #         await ctx.send('Invalid time input')
+        #         return
         unmutes = await self.mute_members(ctx, member, time, reason)
         await ctx.send("Action complete.")
-
         if len(unmutes):
+            time = time * 60 * 60
             await asyncio.sleep(time)
             await self.unmute_members(ctx, member)
 
@@ -248,7 +289,8 @@ class Automod(commands.Cog):
                 embed.add_field(name=name, value=value, inline=inline)
             await ctx.send(embed=embed)
             # del mute_member[str(ctx.guild.id)][str(member.id)]
-
+        else:
+            await ctx.send("Member is not mutted")
         # with open("./json/mute.json", "w") as f:
         #     json.dump(mute_member, f, indent=4)
 
@@ -261,22 +303,26 @@ class Automod(commands.Cog):
     async def _error(self, ctx, member):
         if isinstance(member, MissingRequiredArgument):
             await ctx.send("Oh no! You forget to mention user.")
-        
-        elif isinstance(member, commands.MissingPermissions):
-            embed = discord.Embed(
-                description="You are missing `manage_guild` permission for above action.", colour=warning_color)
-            await ctx.send(embed=embed)
-    
-    @unmute_command.error
-    async def _error(self, ctx, member):
-        if isinstance(member, MissingRequiredArgument):
-            await ctx.send("Oh no! You forget to mention user.")
-        
+
         elif isinstance(member, commands.MissingPermissions):
             embed = discord.Embed(
                 description="You are missing `manage_guild` permission for above action.", colour=warning_color)
             await ctx.send(embed=embed)
 
+    @unmute_command.error
+    async def _error(self, ctx, member):
+        if isinstance(member, MissingRequiredArgument):
+            await ctx.send("Oh no! You forget to mention user.")
+
+        elif isinstance(member, commands.MissingPermissions):
+            embed = discord.Embed(
+                description="You are missing `manage_guild` permission for above action.", colour=warning_color)
+            await ctx.send(embed=embed)
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        print(" <Mod cog is loaded>")
+
+
 def setup(client):
     client.add_cog(Automod(client))
-    print(" <Mod cog is loaded>")
