@@ -70,7 +70,7 @@ class Slash(commands.Cog):
         await ctx.send(embed=kick_embed)
 
     @cog_ext.cog_slash(name="Spotify", description="")
-    async def spotify(ctx, user: discord.Member = None):
+    async def spotify(self, ctx: SlashContext, user: discord.Member = None):
         if user is None:
             user = ctx.author
         if user.activities:
@@ -90,7 +90,7 @@ class Slash(commands.Cog):
             await ctx.send("user is not listening to any song ")
 
     @cog_ext.cog_slash(name="joke", description="Sends joke")
-    async def joke(ctx):
+    async def joke(self, ctx:SlashContext):
         req = requests.get("https://official-joke-api.appspot.com/random_joke")
         joke = req.json()
         embed = discord.Embed(
@@ -100,7 +100,7 @@ class Slash(commands.Cog):
         await ctx.send(embed=embed)
 
     @cog_ext.cog_slash(name="insult", description="")
-    async def insult(ctx, user: discord.Member = None):
+    async def insult(self, ctx: SlashContext, user: discord.Member = None):
         if user is None:
             await ctx.send("No u cant insult yourself,Tag someone")
         else:
@@ -113,7 +113,7 @@ class Slash(commands.Cog):
             await ctx.send(embed=embed)
 
     @cog_ext.cog_slash(name="createavatar", description="Creates avatar from random characters")
-    async def createavatar(ctx, a=None):
+    async def createavatar(self, ctx: SlashContext, a=None):
         if a is None:
             await ctx.send("please enter a random text to generate your avatar")
         else:
@@ -130,12 +130,10 @@ class Slash(commands.Cog):
     # to send avatar of the user
 
     @cog_ext.cog_slash(name="avatar", description="sends user avatar")
-    async def av(ctx, user: discord.User = None):
+    async def av(self, ctx: SlashContext, user: discord.User = None):
         if isinstance(user, commands.UserNotFound):
             await ctx.send("Hmm 🤔, I had a hard time finding the user, you sure that user exits❓ it got a bit chilly right now 👻")
-
-        else:
-            await ctx.send("Hmm somethings wrong, plz inform the developers")
+            return
 
         emb = discord.Embed(title="Avatar")
 
