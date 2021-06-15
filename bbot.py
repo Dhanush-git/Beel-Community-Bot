@@ -1,5 +1,8 @@
 import os
+from typing import Text
 import discord
+from discord import embeds
+from discord import colour
 import requests
 import random
 import discord.ext
@@ -10,9 +13,8 @@ from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 
-client = commands.Bot(command_prefix="bb", intents=discord.Intents.all())
-slash = SlashCommand(client, sync_commands=True
-                     , sync_on_cog_reload=True)
+client = commands.Bot(command_prefix="bb", intents=discord.Intents.all(), case_insensitive = True)
+slash = SlashCommand(client, sync_commands=True, sync_on_cog_reload=True)
 
 
 @client.event
@@ -104,7 +106,21 @@ async def createavatar(ctx, a=None):
         await ctx.send(embed=embed)
 
 
+@client.command()
+async def meme(ctx):
+    req = requests.get(
+        "https://meme-api.herokuapp.com/gimme/dankmemes")
+    r = req.json()
+    image_url = r["url"]
+    title = r["title"]
+    embed = discord.Embed(title=title, colour=0x009aff)
+    embed.set_image(url=image_url)
+    embed.set_footer(text=f"👍 :  {r['ups']}  |  NSFW: {r['nsfw']}")
+    await ctx.send(embed=embed)
+
 # to send avatar of the user
+
+
 @client.command()
 async def av(ctx, user: discord.User = None):
     emb = discord.Embed(title="Avatar")
