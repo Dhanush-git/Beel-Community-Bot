@@ -32,7 +32,7 @@ class BannedUser(Converter):
 
 
 async def kick_member(ctx, member, reason):
-    if ctx.guild.me.top_role.position < member.top_role.position or member == ctx.guild.owner:
+    if ctx.guild.me.top_role < member.top_role or ctx.message.author.top_role < member.top_role:
         await ctx.send("I can't Kick Owner/Moderators/Staff.")
         return
     # with open("./json/config.json", "r") as json_file:
@@ -47,9 +47,9 @@ async def kick_member(ctx, member, reason):
     await member.kick(reason=reason)
     await ctx.send(f" Member ID : ||{member.id}||")
     ban_embed = discord.Embed(title="Member Kicked!", colour=warning_color)
-    ban_embed.add_field(name="User", value=member.name)
-    ban_embed.add_field(name="Kicked by", value=ctx.author.name)
-    ban_embed.add_field(name="Reason", value=reason)
+    ban_embed.add_field(name="User", value=member.name, inline = False)
+    ban_embed.add_field(name="Kicked by", value=ctx.author.name, inline = True)
+    ban_embed.add_field(name="Reason", value=reason, inline = True)
     ban_embed.timestamp = datetime.datetime.utcnow()
     await ctx.send(embed=ban_embed)
 
@@ -70,9 +70,10 @@ async def ban_member(ctx, member, reason):
     await member.ban(reason=reason)
     await ctx.send(f" Member ID : ||{member.id}||")
     ban_embed = discord.Embed(title="Member banned", colour=warning_color)
-    ban_embed.add_field(name="User", value=member.name)
-    ban_embed.add_field(name="Banned by", value=ctx.author.name)
-    ban_embed.add_field(name="Reason", value=reason)
+    ban_embed.add_field(name="User", value=member.name, inline = False)
+    ban_embed.add_field(name="Banned by", value=ctx.author.name, inline = True)
+    ban_embed.add_field(name="Reason", value=reason, inline = True)
+    ban_embed.set_thumbnail(url = member.avatar_url)
     ban_embed.timestamp = datetime.datetime.utcnow()
     await ctx.send(embed=ban_embed)
 
@@ -92,8 +93,9 @@ async def unban_member(ctx, members, reason):
         await ctx.send(f" Member ID : ||{member.id}||")
         ban_embed = discord.Embed(
             title="Member Unbanned", colour=warning_color)
-        ban_embed.add_field(name="User", value=member.name)
-        ban_embed.add_field(name="Reason", value=reason)
+        ban_embed.add_field(name="User", value=member.name, inline = False)
+        ban_embed.add_field(name="Reason", value=reason, inline = False)
+        ban_embed.set_thumbnail(url = member.avatar_url)
         ban_embed.timestamp = datetime.datetime.utcnow()
         await ctx.send(embed=ban_embed)
 
@@ -139,7 +141,7 @@ class Automod(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @commands.command()
+    @commands.command(name = "kick")
     @commands.has_guild_permissions(kick_members=True)
     async def _kick(self, ctx, member: discord.Member, *, reason: Optional[str] = "No reason provided"):
         await kick_member(ctx, member, reason)
@@ -185,14 +187,18 @@ class Automod(commands.Cog):
 
         await ctx.message.delete()
         await channel.purge(limit=num_messages, check=check, before=None)
+        await ctx.send(f"Cleared {num_messages} messages of **{user.name}** in channel {ctx.channel.mention}")
 
     @commands.command(name='clear', help='Using this command you can clear messages in any channel.')
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    async def clear(self, ctx, amount1: int = 10):
+    async def clear(self, ctx, amount1: int = None):
+        if amount1 is None:
+            amount1 = 10
         channel = ctx.message.channel
         if 0 < amount1 <= 100:
             await channel.purge(limit=amount1)
+            await ctx.send(f"Cleared {amount1} messages")
 
         else:
             await ctx.send("Limit provided is not in range.")
@@ -214,6 +220,9 @@ class Automod(commands.Cog):
             await ctx.send(embed=embed)
 
     async def mute_members(self, ctx, member, time, reason):
+        if ctx.guild.me.top_role.position < member.top_role.position or member == ctx.guild.owner:
+            return await ctx.send("I can't ban Owner/Moderators/Staff.")
+        
         # with open("./json/config.json", "r") as json_file:
         #     config = json.load(json_file)
         # try:
