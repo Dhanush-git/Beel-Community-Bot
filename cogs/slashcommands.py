@@ -1,3 +1,4 @@
+from os import name
 import discord
 from discord.ext import commands
 from discord_slash import cog_ext, SlashContext
@@ -5,6 +6,7 @@ import datetime
 from discord import Spotify
 import requests
 import random
+import asyncio
 
 warning_color = 0xff0400
 
@@ -13,9 +15,9 @@ class Slash(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @cog_ext.cog_slash(name="ban", description="This command is used to ban user.")
+    @cog_ext.cog_slash(name="ban", description="Bans mention user from server.")
     async def slash_ban(self, ctx: SlashContext, member: discord.Member, *, reason=None):
-        if ctx.guild.me.top_role.position < member.top_role.position or member == ctx.guild.owner:
+        if ctx.guild.me.top_role < member.top_role or ctx.author.top_role < member.top_role:
             await ctx.send("I can't ban Owner/Moderators/Staff.")
             return
         # with open("./json/config.json", "r") as json_file:
@@ -37,12 +39,13 @@ class Slash(commands.Cog):
         ban_embed.add_field(
             name="Banned by", value=ctx.author.name, inline=False)
         ban_embed.add_field(name="Reason", value=reason, inline=False)
+        ban_embed.set_thumbnail(url=member.avatar_url)
         ban_embed.timestamp = datetime.datetime.utcnow()
         await ctx.send(embed=ban_embed)
 
-    @cog_ext.cog_slash(name="kick", description="This command is used to kick someone from the server.")
+    @cog_ext.cog_slash(name="kick", description="Kick member from server.")
     async def slash_kick(self, ctx: SlashContext, member: discord.Member, *, reason=None):
-        if ctx.guild.me.top_role.position < member.top_role.position or member == ctx.guild.owner:
+        if ctx.guild.me.top_role < member.top_role or ctx.author.top_role < member.top_role:
             await ctx.send("I can't ban Owner/Moderators/Staff.")
             return
         # with open("./json/config.json", "r") as json_file:
@@ -69,21 +72,13 @@ class Slash(commands.Cog):
         kick_embed.timestamp = datetime.datetime.utcnow()
         await ctx.send(embed=kick_embed)
 
-    @cog_ext.cog_slash(name="unlock channel")
-    async def slash_lock(self, ctx: SlashContext, role: discord.Role):
-        await ctx.channel.set_permissions(role, send_messages=False, read_messages=True)
-        await ctx.send("Channel locked.", delete_after=10)
-
-    @cog_ext.cog_slash(name="lock channel", description="Locks channel for a role.")
-    async def slash_unlock(self, ctx: SlashContext, role: discord.Role):
-        await ctx.channel.set_permissions(role, send_messages=True, read_messages=True)
-        await ctx.send("Channel unlocked.", delete_after=10)
-
     @cog_ext.cog_slash(name='clear', description='clears messages in any channel.')
-    async def slash_clear(self, ctx: SlashContext, amount1: int = 10):
-        channel = ctx.message.channel
+    async def slash_clear(self, ctx: SlashContext, amount1: int = None):
+        if amount1 is None:
+            amount1 = 10
         if 0 < amount1 <= 100:
-            await channel.purge(limit=amount1)
+            await ctx.channel.purge(limit=amount1)
+            await ctx.send(f"Cleared {amount1} messages")
 
         else:
             await ctx.send("Limit provided is not in range.")
@@ -93,20 +88,17 @@ class Slash(commands.Cog):
         if num_messages is None:
             num_messages = 100
         user = user or ctx.author
-        channel = ctx.message.channel
-        if ctx.guild.me.top_role < user.top_role or ctx.message.author.top_role < user.top_role:
+        if ctx.guild.me.top_role < user.top_role or ctx.author.top_role < user.top_role:
             return await ctx.send("Sorry!, I can't clear messages of Owner/staff/moderators.")
 
         def check(msg):
             return msg.author.id == user.id
 
-        await ctx.message.delete()
-        await channel.purge(limit=num_messages, check=check, before=None)
+        await ctx.channel.purge(limit=num_messages, check=check, before=None)
+        await ctx.send(f"Cleared {num_messages} messages of **{user.name}** in channel {ctx.channel.mention}")
 
-    @cog_ext.cog_slash(name="Spotify")
-    async def slash_spotify(self, ctx: SlashContext, user: discord.Member = None):
-        if user is None:
-            user = ctx.author
+    @cog_ext.cog_slash(name="spotify", description="Sends song title and Author of song user is listening on Spotify")
+    async def slash_spotify(self, ctx: SlashContext, user: discord.Member):
         if user.activities:
             for activity in user.activities:
                 if isinstance(activity, Spotify):
@@ -167,6 +159,152 @@ class Slash(commands.Cog):
 
         emb.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         await ctx.send(embed=emb)
+
+    async def unmute_members(self, ctx, member, *, reason="Mute time expired."):
+        # with open("./json/config.json", "r") as json_file:
+        #     config = json.load(json_file)
+        # # try:
+        # #     logchanel_id = config[("Guild_ID_" + str(ctx.guild.id))
+        # #                           ]["Configuration"]["Logchannel"]
+        # #     log_channel = self.client.get_channel(id=logchanel_id)
+        # # except KeyError:
+        #     log_channel = ctx.channel  # sou
+        # with open("./json/mute.json") as f:
+        #     mute_member = json.load(f)
+        mute_role = discord.utils.get(ctx.guild.roles, name="Muted")
+        if mute_role in member.roles:
+
+            # role_ids = mute_member[str(ctx.guild.id)][str(member.id)]['role_ids']
+            # roles = [ctx.guild.get_role(int(id_))
+            #          for id_ in role_ids.split(",") if len(id_)]
+            await member.remove_roles(mute_role)
+            embed = discord.Embed(title="Member unmuted",
+                                  colour=warning_color,
+                                  timestamp=datetime.datetime.utcnow())
+
+            embed.set_thumbnail(url=member.avatar_url)
+
+            fields = [("Member", member.mention, False),
+                      ("Reason", reason, False)]
+
+            for name, value, inline in fields:
+                embed.add_field(name=name, value=value, inline=inline)
+            await ctx.send(embed=embed)
+            # del mute_member[str(ctx.guild.id)][str(member.id)]
+        else:
+            await ctx.send("Member is not muted")
+    # with open("./json/mute.json", "w") as f:
+    #     json.dump(mute_member, f, indent=4)
+
+    async def mute_members(self, ctx, member, time, reason):
+        # with open("./json/config.json", "r") as json_file:
+        #     config = json.load(json_file)
+        # try:
+        #     logchanel_id = config[("Guild_ID_" + str(ctx.guild.id))
+        #                           ]["Configuration"]["Logchannel"]
+        #     log_channel = self.client.get_channel(id=logchanel_id)
+        # except KeyError:
+        #     log_channel = ctx.channel  # sorcery no-metrics
+        # json_file = open("./json/mute.json", "r")
+        # mute_members = json.load(json_file)
+        unmutes = []
+        admin_id = self.client.user.id if ctx.author.id == member.id else ctx.author.id
+        mute_role = discord.utils.get(ctx.guild.roles, name="Muted")
+        if mute_role not in ctx.guild.roles:
+            mute_role = await ctx.guild.create_role(name="Muted")
+            for channel in ctx.guild.channels:
+                await channel.set_permissions(mute_role, speak=False, send_messages=False, read_message_history=True, read_messages=False)
+
+        if mute_role not in member.roles:
+            # end_time = datetime.uptown() + timedelta(seconds=seconds) if time else None
+            # if str(ctx.guild.id) not in mute_members:
+            #     mute_members[str(ctx.guild.id)] = {}
+            #     mute_members[str(ctx.guild.id)][str(member.id)] = {'role_ids': role_ids,
+            #                                                        "time": getattr(end_time, "isoformat", lambda: None)(),
+            #                                                        "Reason": reason}
+            # elif str(member.id) not in mute_members[str(ctx.guild.id)]:
+            #     mute_members[str(ctx.guild.id)][str(member.id)] = {'role_ids': role_ids,
+            #                                                        "time": getattr(end_time, "isoformat", lambda: None)(), "Reason": reason}
+            await member.add_roles(mute_role)
+
+            embed = discord.Embed(title="Member muted",
+                                  colour=0xDD2222,
+                                  timestamp=datetime.datetime.utcnow())
+
+            embed.set_thumbnail(url=member.avatar_url)
+            admin = await ctx.guild.fetch_member(admin_id)
+            fields = [("Member", member.mention, False),
+                      ("Duration",
+                       f"{time} hour(s)" if time else "Indefinite", True),
+                      ("Reason", reason, True),
+                      ("Actioned by", admin.name, False)]
+
+            for name, value, inline in fields:
+                embed.add_field(name=name, value=value, inline=inline)
+
+            await ctx.send(embed=embed)
+            if time:
+                unmutes.append(member)
+
+            # with open("./JSON/mute_members.json", "w") as f:
+            #     json.dump(mute_members, f, indent=4)
+        elif ctx.guild.me.top_role.position < member.top_role.position:
+            await ctx.send("I can't mute Owner/Staff/Moderators.")
+        else:
+            await ctx.channel.send("Member is already muted.")
+        return unmutes
+
+    @cog_ext.cog_slash(name="mute", description="Mutes member of server.")
+    async def mute_command(self, ctx, member: discord.Member, time: int = None, *, reason: str = None, ):
+        if reason is None:
+            reason = "No reason provided."
+        # if time:
+
+        #     try:
+        #     # Gets the numbers from the time argument, start to -1
+
+        #         seconds = time[:-1]
+        #         seconds = int(seconds)
+        #         duration = time[-1]  # Gets the timed manipulation, s, m, h, d
+        #         if duration == "s":
+        #             seconds *= 1
+        #         elif duration == "m":
+        #             seconds *= 60
+        #         elif duration == "h":
+        #             seconds = seconds * 60 * 60
+        #         elif duration == "d":
+        #             seconds *= 86400
+        #         else:
+        #             await ctx.send("Invalid duration input")
+        #             return
+        #     except Exception as e:
+        #         print(e)
+        #         await ctx.send('Invalid time input')
+        #         return
+        unmutes = await self.mute_members(ctx, member, time, reason)
+        await ctx.send("Action complete.")
+        if len(unmutes):
+            time = time * 60 * 60
+            await asyncio.sleep(time)
+            await self.unmute_members(ctx, member)
+
+    @cog_ext.cog_slash(name="unumute", description="Helps to unmute muted members")
+    async def unmute_command(self, ctx, members: discord.Member, *, reason=None):
+        if reason is None:
+            reason = "No reason provided."
+        await self.unmute_members(ctx, members, reason=reason)
+
+    @cog_ext.cog_slash(name="meme", description="Sends memee")
+    async def slash_meme(self, ctx: SlashContext):
+        req = requests.get(
+            "https://meme-api.herokuapp.com/gimme/dankmemes")
+        r = req.json()
+        image_url = r["url"]
+        title = r["title"]
+        embed = discord.Embed(title=title, colour=0x009aff)
+        embed.set_image(url=image_url)
+        embed.set_footer(text=f"👍 :  {r['ups']}  |  NSFW: {r['nsfw']}")
+        await ctx.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_ready(self):
